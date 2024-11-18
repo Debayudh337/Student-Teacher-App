@@ -12,8 +12,10 @@ My actual motive is to be able to extract marks from mark sheets taken by studen
 
 ## Installation 
 #### 1. Dependencies
-Install Dependencies using 
-```pip install -r Dependencies.txt```
+Install Dependencies using
+```bash
+pip install -r Dependencies.txt
+```
 
 #### 2. Download Tesseract OCR 
 Use the *https://github.com/tesseract-ocr/tesseract/releases* repository (You will need it LOCALLY on your system for OCR).
@@ -68,7 +70,8 @@ The strongest tool available to us - Google Cloud Vision API. This is famously u
 as always, you can read the documentation and the guides over at *https://cloud.google.com/vision/docs/how-to*.
 
 Just like Groq, you need to set an environment variable ```GOOGLE_APPLICATION_CREDENTIALS``` . You can refer to ```Point 4```, or just simply use ```$env:GOOGLE_APPLICATION_CREDENTIALS="<your_api_key>"```.
-You also need to create an "Application Credential Secret Key" from Google Cloud, which will authenticate your use of the API. This is going to be a .json download. You will have to specify the .json path in the ```credentials``` section of the code.
+You also need to create an "Application Credential Secret Key" from Google Cloud, which will authenticate your API use. This is going to be a .json download. You must specify the .json path in the ```credentials``` section of the code.
+For more clarification on the process, you can refer to this video: *https://www.youtube.com/watch?v=TTeVtJNWdmI*. You can open your .json key and get the ```private_key_id```. This ID is to be used for the environment variable!
 
 Now with the help of both llama3-8b and Vision AI, let me share a sample IO:
 
@@ -86,25 +89,47 @@ With this, I conclude the "ExtractPDF" portion.
 
 -------------------------------------------------
 
-# Excel Data Extraction
-### We want to create a data extractor  from Excel.
+## Installation
+
+### 1) Dependencies
+Install the required libraries using the following command:
+```bash
+  pip install pandas numpy openpyxl
+```
+ ### 2)File Path
+ i)Specify the path to your Excel file in the variable excel_file_path in the code. 
+
+ ii)Specify the path to the folder containing OCR-corrected output text files in the variable corrected_folder.
+ ### 3) Workflow and Flag Representation
+  For each OCR-corrected output text file, the script will:
+
+i)Validate the NAME, REGISTRATION NUMBER, and SUBJECT MARKS by comparing them with the data in the Excel database.
+
+ii)Generate a flag based on the comparison results, which will be stored in the Excel database.
+
+iii)Create a discrepancy log for any mismatched data.
+#### Flag Representation System
+The flag will be a 4-digit number ( _ _ _ _ ), where each digit represents the following:
+
+x x 0 0: OCR output contains less data due to the poor quality of the PDF.
+
+x x 0 1: Data mismatch—subject marks may have been interchanged between OCR output and Excel data. Requires manual review.
+
+x x 1 0: Marks match between the PDF and Excel database.
+
+x 0 x x: The student name does not match between the OCR output and the Excel database.
+
+x 1 x x: The student name matches between the OCR output and the Excel database.
+
+0 x x x: The registration number does not match between the OCR output and the Excel database.
+
+1 x x x: The registration number matches between the OCR output and the Excel database.
+#### Example Flags:
+Flag = 1010: The registration number and marks match, but the student’s name does not match.
+
+Flag = 1101: The registration number and student’s name match, but the marks may have been interchanged.
+
+Flag = 1110: All data match (registration number, student name, and marks).
+
 -------------------------------------------------
-
-## About
-#### A little project dealing with information retrieval from Excel documents.
-For the time being, I am only dealing with a single txt file at a time, eventually using this model for a batch procedure. I will upload all the major iteration changes I go through!
-My actual motive is to be able to extract marks from mark sheets from the database. These marks will be matched with the marksheet's marks provided as PDF 
-
-## Installation 
-#### 1. Dependencies
-Install Pandas and openpyxl using 
-```pip install pandas openpyxl ```
-
-#### 2. PATH
-Enter the path to your excel file in ```excel_file_path``` in the declaration outside.
-
--------------------------------------------------
-
-## Checker Part will be updated soon.
-
 
