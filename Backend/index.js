@@ -58,7 +58,7 @@ app.use((err, req, res, next) => {
 });
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use('/:catchAll(*)', (req, res) => {
   res.status(404).json({
     success: false,
     message: 'API endpoint not found'
