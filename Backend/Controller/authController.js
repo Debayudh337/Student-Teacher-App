@@ -8,14 +8,14 @@ import {
   getTempUser,
   updateTempUser,
   deleteTempUser,
-} from '../Models/redisTempModel.js';
+} from '../models/redisTempModel.js';
 
 import {
   findByEmail,
   createUser,
   updateUser,
   deleteUser,
-} from '../Models/userModel.js';
+} from '../models/userModel.js';
 
 // ========== REGISTER ==========
 export const register = async (req, res) => {
