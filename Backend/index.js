@@ -6,7 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 // Import routes
-import { authRouter } from './routes/authRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 
 // Load environment variables
@@ -17,7 +17,7 @@ const app = express();
 
 // Get directory name in ES modules
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);  // FIXED: Changed * to _
+const __dirname = path.dirname(__filename);
 
 // Middleware
 app.use(cors({
@@ -32,7 +32,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
-app.use('/api/auth', authRouter);
+app.use('/api/auth', authRoutes);
 app.use('/api/profiles', profileRoutes);
 
 // Health check endpoint
@@ -57,8 +57,8 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
-app.use('/:catchAll(*)', (req, res) => {
+// 404 handler - FIXED: Use a proper middleware for unmatched routes
+app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: 'API endpoint not found'
@@ -67,5 +67,5 @@ app.use('/:catchAll(*)', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log("Server started on http://localhost:${PORT}");  // FIXED: Added backticks for template literal
+  console.log(`Server started on http://localhost:${PORT}`);
 });

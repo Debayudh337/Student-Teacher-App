@@ -4,35 +4,35 @@ import { verifyToken } from '../middlewares/verifytoken.js';
 import { getUserData } from '../controller/userController.js';
 import { verifyOTP } from '../controller/authController.js';
 
-
-
-export const authRouter = express.Router();
+const router = express.Router();
 
 // ========== Test Route ==========
-authRouter.get('/test', (req, res) => {
+router.get('/test', (req, res) => {
   res.json({ message: 'Auth route working!' });
 });
 
 // ========== Register ==========
-authRouter.post('/register', register);
+router.post('/register', register);
 
-//============ResendOTP===========
-authRouter.post('/resendOTP', resendOTP);
+// =========== Resend OTP ===========
+router.post('/resend-otp', resendOTP); // Changed to lowercase
 
 // ========== Login ==========
-authRouter.post('/login', login);
+router.post('/login', login);
 
 // ========== Logout ==========
-authRouter.post('/logout', logout);
+router.post('/logout', logout);
 
-//==========request for forgot password ============
-authRouter.post('/request-password-reset',requestPasswordReset);
+// ========== Request for forgot password ============
+router.post('/request-password-reset', requestPasswordReset);
 
-//==========verify otp for forgot password ============
-authRouter.post('/verify-password-resetOTP',verifyPasswordResetOTP);
+// ========== Verify OTP for forgot password ============
+router.post('/verify-password-reset-otp', verifyPasswordResetOTP); // FIXED: Changed to lowercase
 
 // ========== Get Profile (Protected) ==========
-authRouter.get('/profile', verifyToken, getUserData);
+router.get('/profile', verifyToken, getUserData);
 
+// ========== Verify OTP ==========
+router.post('/verify-otp', verifyOTP);
 
-authRouter.post('/verify-otp', verifyOTP);
+export default router;

@@ -23,10 +23,10 @@ router.post('/',
   createProfileHandler
 );
 
-// Get a specific profile
+// Get a specific profile - FIXED: Changed to :profileId
 router.get('/:profileId', getProfileHandler);
 
-// Update a profile with file upload support
+// Update a profile with file upload support - FIXED: Changed to :profileId
 router.put('/:profileId', 
   upload.fields([
     { name: 'profileImage', maxCount: 1 },
@@ -34,11 +34,11 @@ router.put('/:profileId',
   ]), 
   updateProfileHandler
 );
+
 // Get all profiles for a user
-router.get('/user/:userId', getUserProfilesHandler);
+router.get('/user/:id', getUserProfilesHandler);
+
 // Delete a profile
-router.delete('/:profileId', deleteProfileHandler);
-
-
+router.delete('/:id', deleteProfileHandler);
 
 export default router;
