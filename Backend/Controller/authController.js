@@ -47,6 +47,8 @@ export const register = async (req, res) => {
     };
 
     await storeTempUser(tempUser);
+    console.log('📧 OTP for', email, ':', otp);
+    console.log('💡 Use this OTP for verification');
 
     // Send OTP via email
     await sendMail(

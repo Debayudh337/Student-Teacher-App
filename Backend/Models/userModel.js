@@ -1,4 +1,4 @@
-import { db } from "../firebase.js";
+import { db } from "../config/firebase.js";
 
 const userCollection = db.collection('users'); // ✅ Fixed string literal
 

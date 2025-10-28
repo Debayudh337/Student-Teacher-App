@@ -1,8 +1,8 @@
 import express from 'express';
-import { register, login, logout, resendOTP, requestPasswordReset, verifyPasswordResetOTP } from '../controller/authController.js';
+import { register, login, logout, resendOTP, requestPasswordReset, verifyPasswordResetOTP,verifyOTP } from '../controller/authController.js';
 import { verifyToken } from '../middlewares/verifytoken.js';
 import { getUserData } from '../controller/userController.js';
-import { verifyOTP } from '../controller/authController.js';
+// import { verifyOTP } from '../controller/authController.js';
 
 const router = express.Router();
 

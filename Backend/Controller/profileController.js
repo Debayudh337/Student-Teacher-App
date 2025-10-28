@@ -7,75 +7,88 @@ import {
 } from '../models/profileModel.js';
 
 import multer from 'multer';
+import { bucket } from '../config/firebase.js'; // Add this
+import fs from 'fs/promises'; // For async file ops
+import path from 'path';
 
 // Configure multer for file uploads
+// Update storage to TEMP folder (we'll delete after upload)
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
+  destination: (req, file, cb) => cb(null, 'temp-uploads/'), // Temp!
+  filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + '.' + file.originalname.split('.').pop());
+    const ext = file.originalname.split('.').pop();
+    cb(null, `${file.fieldname}-${uniqueSuffix}.${ext}`);
   }
 });
 
 export const upload = multer({ 
   storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  }
+  limits: { fileSize: 5 * 1024 * 1024 } // Keep this
 });
 
 // Create a new profile
 export const createProfileHandler = async (req, res) => {
   try {
-    const {
-      userId,
-      basicInfo,
-      subjects,
-      introduction,
-      outcomes,
-      markSheets,
-      certificates,
-      profileSummary
-    } = req.body;
-
-    // Handle file uploads
+    const { userId, basicInfo, subjects, introduction, outcomes, markSheets, certificates, profileSummary } = req.body;
     const files = req.files || {};
-    const profileImage = files.profileImage ? files.profileImage[0] : null;
-    const documents = files.documents || [];
+    const profileImageFile = files.profileImage ? files.profileImage[0] : null;
+    const documentFiles = files.documents || [];
+
+    // Helper: Upload a single file to Storage and return URL
+    const uploadToStorage = async (file, subfolder = '') => {
+      if (!file) return null;
+      const tempPath = file.path;
+      const fileName = file.filename;
+      const filePathInStorage = `${subfolder}${userId}/${fileName}`; // e.g., 'profiles/john/avatar-123.jpg'
+      
+      const storageFile = bucket.file(filePathInStorage);
+      await bucket.upload(tempPath, {
+        destination: filePathInStorage,
+        metadata: { contentType: file.mimetype }
+      });
+      await storageFile.makePublic(); // Or use signed URLs for private
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePathInStorage}`;
+      
+      // Clean temp
+      await fs.unlink(tempPath);
+      return publicUrl;
+    };
+
+    // Upload files
+    const profileImageUrl = await uploadToStorage(profileImageFile, 'profiles/');
+    const documentUrls = await Promise.all(documentFiles.map(doc => uploadToStorage(doc, 'profiles/docs/')));
 
     const profileData = {
       userId,
-      basicInfo: JSON.parse(basicInfo || '{}'),
-      subjects: JSON.parse(subjects || '[]'),
+      basicInfo: basicInfo || '{}',
+      subjects: subjects || '[]',
       introduction,
-      outcomes: JSON.parse(outcomes || '[]'),
-      markSheets: JSON.parse(markSheets || '[]'),
-      certificates: JSON.parse(certificates || '[]'),
+      outcomes: outcomes || '[]',
+      markSheets: markSheets || '[]',
+      certificates: certificates || '[]',
       profileSummary,
-      profileImage: profileImage ? profileImage.filename : null,
-      documents: documents.map(doc => doc.filename),
+      profileImage: profileImageUrl, // Now a URL!
+      documents: documentUrls.filter(url => url), // Array of URLs
       createdAt: new Date(),
       updatedAt: new Date()
     };
 
-    const profileId = await createProfile(profileData);
+    const profileId = await createProfile(profileData); // Your model unchanged
     
-    res.status(201).json({
-      success: true,
-      message: 'Profile created successfully',
-      profileId
-    });
+    res.status(201).json({ success: true, message: 'Profile created successfully', profileId });
   } catch (error) {
     console.error('Error creating profile:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error creating profile',
-      error: error.message
-    });
+    // Cleanup temps on error
+    if (req.files) {
+      const temps = [...(req.files.profileImage || []), ...(req.files.documents || [])].map(f => f.path);
+      await Promise.all(temps.map(p => fs.unlink(p).catch(() => {})));
+    }
+    res.status(500).json({ success: false, message: 'Error creating profile', error: error.message });
   }
 };
+
+    
 
 // Get a profile by ID
 export const getProfileHandler = async (req, res) => {
@@ -108,27 +121,60 @@ export const getProfileHandler = async (req, res) => {
 export const updateProfileHandler = async (req, res) => {
   try {
     const { profileId } = req.params;
-    const updates = req.body;
+    const userId = req.userId; // ← FROM verifyToken MIDDLEWARE
     
-    // Handle file uploads if any
-    const files = req.files || {};
-    if (files.profileImage) {
-      updates.profileImage = files.profileImage[0].filename;
-    }
-    if (files.documents) {
-      updates.documents = files.documents.map(doc => doc.filename);
-    }
-    
-    updates.updatedAt = new Date();
-    
-    const success = await updateProfile(profileId, updates);
-    
-    if (!success) {
+    // 1. FIRST check if profile exists and belongs to user
+    const existingProfile = await getProfile(profileId);
+    if (!existingProfile) {
       return res.status(404).json({
         success: false,
         message: 'Profile not found'
       });
     }
+    
+    // 2. Verify ownership - CRITICAL SECURITY!
+    if (existingProfile.userId !== userId) {
+      return res.status(403).json({
+        success: false, 
+        message: 'You can only update your own profiles'
+      });
+    }
+
+    const updates = {};
+    
+    // 3. Only include provided fields (partial updates)
+    if (req.body.introduction) updates.introduction = req.body.introduction;
+    if (req.body.profileSummary) updates.profileSummary = req.body.profileSummary;
+    // Add other fields as needed
+    
+    // 4. Handle file uploads
+    const files = req.files || {};
+    if (files.profileImage) {
+      updates.profileImage = files.profileImage[0].filename;
+      
+      // Optional: Delete old image file to save space
+      if (existingProfile.profileImage) {
+        const fs = await import('fs');
+        const path = await import('path');
+        const oldImagePath = path.join('uploads', existingProfile.profileImage);
+        
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+    }
+    
+    if (files.documents) {
+      updates.documents = [
+        ...(existingProfile.documents || []),
+        ...files.documents.map(doc => doc.filename)
+      ];
+    }
+    
+    updates.updatedAt = new Date();
+    
+    // 5. Now update the profile
+    const success = await updateProfile(profileId, updates);
     
     res.status(200).json({
       success: true,
@@ -143,7 +189,6 @@ export const updateProfileHandler = async (req, res) => {
     });
   }
 };
-
 // Delete a profile
 export const deleteProfileHandler = async (req, res) => {
   try {
