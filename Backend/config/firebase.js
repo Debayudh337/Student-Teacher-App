@@ -7,7 +7,7 @@ const serviceAccount = require("./firebase-admin.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: 'student-techer-app.appspot.com'
+  
 });
 
 export const db = admin.firestore();

@@ -1,10 +1,11 @@
 import express from 'express';
 import {
   createProfileHandler,
-  getProfileHandler,
-  updateProfileHandler,
-  deleteProfileHandler,
-  getUserProfilesHandler,
+  // getProfileHandler,
+  // updateProfileHandler,
+  // deleteProfileHandler,
+  // getUserProfilesHandler,
+  getAllTeachersHandler,
   upload
 } from '../controller/profileController.js';
 import { verifyToken } from '../middlewares/verifytoken.js';
@@ -23,22 +24,28 @@ router.post('/',
   createProfileHandler
 );
 
-// Get a specific profile - FIXED: Changed to :profileId
-router.get('/:profileId', getProfileHandler);
 
-// Update a profile with file upload support - FIXED: Changed to :profileId
-router.put('/:profileId', 
-  upload.fields([
-    { name: 'profileImage', maxCount: 1 },
-    { name: 'documents', maxCount: 10 }
-  ]), 
-  updateProfileHandler
-);
+// Fetch all teacher's list and info  from DB
 
-// Get all profiles for a user
-router.get('/user/:id', getUserProfilesHandler);
+router.get('/teachers', getAllTeachersHandler);
 
-// Delete a profile
-router.delete('/:id', deleteProfileHandler);
+
+// // Get a specific profile - FIXED: Changed to :profileId
+// router.get('/:profileId', getProfileHandler);
+
+// // Update a profile with file upload support - FIXED: Changed to :profileId
+// router.put('/:profileId', 
+//   upload.fields([
+//     { name: 'profileImage', maxCount: 1 },
+//     { name: 'documents', maxCount: 10 }
+//   ]), 
+//   updateProfileHandler
+// );
+
+// // Get all profiles for a user
+// router.get('/user/:id', getUserProfilesHandler);
+
+// // Delete a profile
+// router.delete('/:id', deleteProfileHandler);
 
 export default router;
