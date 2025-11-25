@@ -6,7 +6,7 @@ import SignUp from './pages/Signup';
 import OtpVerification from './pages/OtpVerification';
 import Welcome from './pages/Welcome';
 
-
+ 
 function App() {
   return (
     <Router>
